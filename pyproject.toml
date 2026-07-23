@@ -1,0 +1,30 @@
+[project]
+name = "qyield"
+version = "1.0.0"
+description = "CLI for the QYield quantum wafer-defect classifier (QResNet-ensemble photonic head)"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    # Pinned to match the exact versions the shipped checkpoint was trained/verified with.
+    # CPU wheels are fine for inference; install the matching CUDA build instead for
+    # GPU inference (see README.md).
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "pillow>=10.0",
+    # Only needed to construct the photonic head's beamsplitter-mesh circuit at
+    # model-load time (not used per-inference-call). Do not float merlinquantum's
+    # version — model.py's MeshUnitary was written against its 0.4.0 API.
+    "merlinquantum==0.4.0",
+    "perceval-quandela==1.2.3",
+]
+
+[project.scripts]
+qyield = "qyield.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qyield"]

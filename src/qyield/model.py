@@ -384,21 +384,42 @@ class QYieldModel:
 
     def __init__(self, device: str | None = None, ckpt_path: str | Path | None = None,
                  stems_dir: str | Path | None = None, kset_path: str | Path | None = None):
-        self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
-
         ckpt_path = Path(ckpt_path) if ckpt_path else REPO_ROOT / DEFAULT_CKPT_PATH
         if not ckpt_path.exists():
             raise FileNotFoundError(f"checkpoint not found: {ckpt_path}")
-        self.ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
 
         kset_path = Path(kset_path) if kset_path else REPO_ROOT / DEFAULT_KSET_PATH
         if not kset_path.exists():
             raise FileNotFoundError(f"K-shot support set not found: {kset_path}")
+        # K-set decode is device-independent (numpy) — do it once.
         self.support_imgs_224, self.support_labels, self.classes = load_kset(kset_path)
-
+        self._ckpt_path = ckpt_path
         self.stems_dir = Path(stems_dir) if stems_dir else REPO_ROOT / DEFAULT_STEMS_DIR
-        self._build_model()
 
+        # Build on the requested device, transparently falling back to CPU if the
+        # installed torch build lacks CUDA kernels for this GPU (e.g. a very new
+        # architecture like Blackwell/sm_120 vs a stable pinned wheel). Only auto-
+        # falls back when the caller didn't force a specific device.
+        auto = device is None
+        chosen = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        try:
+            self._build_on_device(chosen)
+        except RuntimeError as exc:
+            if "CUDA" in str(exc) and (auto or chosen == "cuda"):
+                import warnings
+                warnings.warn(f"CUDA inference failed ({exc.__class__.__name__}); "
+                              "falling back to CPU.", stacklevel=2)
+                self._build_on_device("cpu")
+            else:
+                raise
+
+    def _build_on_device(self, device: str) -> None:
+        """(Re)load the checkpoint + model + embed the K-set on `device`. Safe to
+        call twice (CUDA-attempt then CPU-fallback) — all device-bound state is
+        (re)assigned here."""
+        self.device = torch.device(device)
+        self.ckpt = torch.load(self._ckpt_path, map_location=self.device, weights_only=False)
+        self._build_model()
         # Embed the full bundled K-set ONCE at load time. Prototypes are computed
         # PER PREDICTION CALL from a (possibly subsampled) slice of these cached
         # embeddings, so `n_way`/`k_shot`/`ways` can vary per call without re-embedding.

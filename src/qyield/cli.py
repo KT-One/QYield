@@ -87,6 +87,12 @@ def cmd_info(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tui(args: argparse.Namespace) -> int:
+    from .tui import run
+    run()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="qyield", description=__doc__.split("\n\n")[0])
     sub = p.add_subparsers(dest="command", required=True)
@@ -105,6 +111,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_info = sub.add_parser("info", help="show model/class info")
     p_info.set_defaults(func=cmd_info)
+
+    p_tui = sub.add_parser("tui", help="launch the interactive terminal UI")
+    p_tui.set_defaults(func=cmd_tui)
 
     return p
 

@@ -17,6 +17,8 @@ dependencies = [
     # version — model.py's MeshUnitary was written against its 0.4.0 API.
     "merlinquantum==0.4.0",
     "perceval-quandela==1.2.3",
+    # TUI (qyield tui) — Textual for the interactive interface.
+    "textual==0.86.3",
 ]
 
 [project.scripts]

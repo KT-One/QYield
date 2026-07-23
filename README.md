@@ -90,6 +90,19 @@ uv run qyield predict wafer.npy --n-way 3 --k-shot 5 --seed 42
 uv run qyield predict wafer.npy --ways Donut Scratch Loc --k-shot 5
 ```
 
+**Prefer a visual, interactive interface?**
+
+```bash
+uv run qyield tui
+```
+
+Launches a terminal UI (mouse + keyboard) with the same two paths as the plain
+CLI — Demo (pick a class from our K-set) or Upload (your own wafer map) — plus
+a live wafer-map preview rendered right in the terminal before you run
+inference. On desktop Linux/macOS, Upload's "Browse..." button opens your OS's
+native file picker (via `zenity`/`kdialog`/`osascript`, whichever is installed);
+falls back to typing a path directly if none is available (e.g. over SSH).
+
 ## How it works
 
 - **Backbone:** 3x ResNet50, each self-supervised-pretrained (SimCLR / Barlow

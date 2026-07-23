@@ -23,7 +23,10 @@ from qyield.model import QYieldModel, REPO_ROOT, load_kset
 
 def main() -> int:
     print("QYield smoke test\n" + "=" * 40)
-    model = QYieldModel(device="cpu")
+    # Use the DEFAULT device path (auto-detect + CPU fallback) — the same path
+    # real users hit via the CLI — so this test catches device/fallback bugs
+    # instead of masking them with an explicit device="cpu".
+    model = QYieldModel()
     print(f"loaded OK on device={model.device}; classes={model.classes}")
 
     imgs, labels, classes = load_kset(REPO_ROOT / DEFAULT_KSET_PATH)

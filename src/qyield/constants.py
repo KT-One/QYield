@@ -30,6 +30,30 @@ CLASS_DESCRIPTIONS = {
     "Scratch":   "Defective dies forming a thin line/scratch-like pattern.",
 }
 
+# Human-friendly DISPLAY names for the terse internal class keys above. The keys
+# (CLASS_DESCRIPTIONS / *_CLASSES) remain the SOURCE OF TRUTH — they name the
+# support-set prototypes and are what any machine-facing input (folder names,
+# --ways, saved support sets) must use. DISPLAY_NAMES is a PRESENTATION layer
+# only: apply it when showing a class to a human, never when matching/keying.
+# Use display_name(key) below rather than indexing directly (falls back to the
+# raw key for unknown/custom classes, e.g. user-labelled ones).
+DISPLAY_NAMES = {
+    "Center":    "Center cluster",
+    "Edge-Ring": "Edge ring",
+    "Edge-Loc":  "Edge-localized",
+    "Donut":     "Donut",
+    "Loc":       "Localized cluster",
+    "Near-full": "Near-full failure",
+    "Random":    "Random / scattered",
+    "Scratch":   "Scratch",
+}
+
+
+def display_name(key: str) -> str:
+    """Friendly label for a class key (falls back to the key itself for unknown
+    or user-defined classes). Use only for human-facing output."""
+    return DISPLAY_NAMES.get(key, key)
+
 # ---------------------------------------------------------------------------
 # Die-state legend — every wafer map is a 2D grid of per-die integer states.
 # This is what a raw .npy query image's pixel VALUES mean (0/1/2), distinct

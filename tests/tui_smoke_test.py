@@ -1,7 +1,11 @@
 """tui_smoke_test.py — headless end-to-end smoke test for the QYield TUI, using
-Textual's Pilot test harness (no real terminal needed). Drives: MainMenu -> Demo
--> pick a class -> run prediction -> ResultScreen; then MainMenu -> Upload ->
-enter a path -> load preview -> run prediction -> ResultScreen.
+Textual's Pilot test harness (no real terminal needed).
+
+Covers:
+  * Demo flow:  MainMenu -> Demo -> run -> ResultScreen.
+  * Label flow: MainMenu -> Label (Phase 1: label 2 classes) -> Build ->
+                ClassifyScreen (Phase 2: classify a query) -> ResultScreen
+                showing Predicted + Actual.
 
 Run: uv run python tests/tui_smoke_test.py
 """
@@ -15,9 +19,18 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from qyield.constants import DEFAULT_KSET_PATH
-from qyield.model import REPO_ROOT, load_kset
-from qyield.tui import DemoScreen, MainMenu, QYieldApp, ResultScreen, UploadScreen
+from qyield.tui import (
+    ClassifyScreen, DemoScreen, LabelScreen, MainMenu, QYieldApp, ResultScreen,
+)
+from textual.widgets import Button, Input, Static
+
+
+async def _wait_for(pilot, app, screen_cls, tries: int = 600) -> bool:
+    for _ in range(tries):
+        await pilot.pause(0.05)
+        if isinstance(app.screen, screen_cls):
+            return True
+    return False
 
 
 async def test_demo_flow() -> bool:
@@ -28,61 +41,82 @@ async def test_demo_flow() -> bool:
         await pilot.pause()
         assert isinstance(app.screen, DemoScreen), f"expected DemoScreen, got {app.screen}"
 
-        run_btn = app.screen.query_one("#run-demo")
         await pilot.click("#run-demo")
-        # wait for the background worker (model load + inference) to finish
-        for _ in range(600):   # up to ~60s
+        for _ in range(600):
             await pilot.pause(0.1)
             if isinstance(app.screen, ResultScreen):
                 break
-        if not isinstance(app.screen, ResultScreen):
-            status = app.screen.query_one("#demo-status")
-            print(f"[demo flow] status widget content: {status.renderable!r}")
         assert isinstance(app.screen, ResultScreen), f"expected ResultScreen, got {app.screen}"
         print(f"[demo flow] true={app.screen.true_class} predicted={app.screen.result['predicted_class']}")
         assert app.screen.result["predicted_class"] in app.screen.result["episode_classes"]
     return True
 
 
-async def test_upload_flow() -> bool:
-    imgs, labels, classes = load_kset(REPO_ROOT / DEFAULT_KSET_PATH)
-    tmp_path = Path("/tmp/qyield_tui_smoke_query.npy")
-    np.save(tmp_path, imgs[10])   # continuous [0,1] float, as predict_array would accept
-    true_label = str(labels[10])
-
+async def test_label_flow() -> bool:
+    """Phase 1: label the labelling pool across ≥2 classes (using each wafer's
+    true-label hint). Build -> Phase 2: classify a query, check Predicted+Actual."""
     app = QYieldApp()
     async with app.run_test(size=(120, 50)) as pilot:
-        await pilot.click("#upload")
+        await pilot.click("#label")
         await pilot.pause()
-        assert isinstance(app.screen, UploadScreen), f"expected UploadScreen, got {app.screen}"
+        assert isinstance(app.screen, LabelScreen), f"expected LabelScreen, got {app.screen}"
+        scr = app.screen
 
-        path_input = app.screen.query_one("#path-input")
-        path_input.value = str(tmp_path)
-        await pilot.click("#load-preview")
+        # Label every wafer in the pool with its TRUE label (click-to-label:
+        # selecting a class in the list labels the current wafer and advances).
+        n = len(scr._label_pool)
+        for _ in range(n):
+            true_label = scr._label_pool[scr._cursor][1]
+            scr._assign_current(true_label)
+            await pilot.pause(0.05)
+        assert len(scr._assigned_labels) == n, f"expected {n} labelled, got {len(scr._assigned_labels)}"
+        assert len(set(scr._assigned_labels)) >= 2, "need >=2 classes labelled"
+
+        # 'Continue' should now be enabled (was disabled until >=2 classes)
+        assert not scr.query_one("#build", Button).disabled, "Continue should enable after >=2 classes"
+
+        # add a custom class (verifies the free-labelling affordance)
+        scr.query_one("#new-class", Input).value = "MyDefect"
+        scr.query_one("#add-class", Button).press()
+        await pilot.pause(0.1)
+        assert "MyDefect" in scr._choices, "custom class not registered"
+
+        # Continue -> Phase 2
+        scr.query_one("#build", Button).press()
+        assert await _wait_for(pilot, app, ClassifyScreen), f"expected ClassifyScreen, got {app.screen}"
         await pilot.pause(0.2)
+        csr = app.screen
+        print(f"[label flow] built support set; {len(csr._queries)} queries queued")
 
-        run_btn = app.screen.query_one("#run-upload")
-        assert not run_btn.disabled, "run-upload should be enabled after a successful preview load"
-
-        await pilot.click("#run-upload")
+        # classify the current query -> inline verdict (Predicted + Actual), Next enabled
+        csr.query_one("#classify", Button).press()
         for _ in range(600):
             await pilot.pause(0.1)
-            if isinstance(app.screen, ResultScreen):
+            if not csr.query_one("#next", Button).disabled:
                 break
-        assert isinstance(app.screen, ResultScreen), f"expected ResultScreen, got {app.screen}"
-        print(f"[upload flow] true={true_label} predicted={app.screen.result['predicted_class']}")
-        assert app.screen.result["predicted_class"] in app.screen.result["episode_classes"]
+        assert csr._classified, "wafer should be classified"
+        verdict = str(csr.query_one("#verdict", Static).renderable)
+        assert "Predicted:" in verdict and "Actual:" in verdict, f"verdict missing fields: {verdict!r}"
+        assert not csr.query_one("#next", Button).disabled, "Next should be enabled after Classify"
+        print("[label flow] inline verdict:\n    " + verdict.replace("\n", "\n    "))
 
-    tmp_path.unlink(missing_ok=True)
+        # Next advances to the following query and resets the verdict
+        prev_cursor = csr._cursor
+        csr.query_one("#next", Button).press()
+        await pilot.pause(0.2)
+        assert csr._cursor == prev_cursor + 1, "Next should advance the query cursor"
+        assert csr.query_one("#next", Button).disabled, "Next should reset (disabled) after advancing"
+        print(f"[label flow] advanced to query {csr._cursor + 1}/{len(csr._queries)}")
     return True
 
 
 async def main() -> int:
     print("QYield TUI smoke test\n" + "=" * 40)
     ok1 = await test_demo_flow()
-    ok2 = await test_upload_flow()
-    print("\nAll TUI flows completed without error." if (ok1 and ok2) else "\nFAILED")
-    return 0 if (ok1 and ok2) else 1
+    ok2 = await test_label_flow()
+    ok = ok1 and ok2
+    print("\nAll TUI flows completed without error." if ok else "\nFAILED")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

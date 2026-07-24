@@ -70,12 +70,23 @@ uv run qyield predict /path/to/your_wafer.npy
 ```
 
 Accepts a raw `.npy` array with values in `{0, 1, 2}` (blank / good die /
-defective die — recommended, native WM-811K format) or a grayscale `.png`/`.jpg`
-(best-effort). Supply the wafer at its **native resolution** — the CLI resizes
-it to 224x224 internally; do not pre-resize and re-quantize yourself, that
-destroys information and measurably hurts accuracy.
+defective die — recommended, native WM-811K format) or a grayscale `.png`/`.jpg`.
+Supply the wafer at its **native resolution** — the CLI resizes it to 224x224
+internally; do not pre-resize and re-quantize yourself, that destroys information
+and measurably hurts accuracy.
 
-**No data yet? Try a demo query from our bundled support set:**
+**Want something to try right now?** `data/samples/` ships with ten real,
+held-out wafer maps (2 per novel class) as PNGs — genuine query images, *not*
+from the support set:
+
+```bash
+uv run qyield predict data/samples/Scratch_01.png
+uv run qyield predict data/samples/Donut_01.png --n-way 3 --k-shot 5
+```
+
+The filename tells you the true class so you can check the prediction.
+
+**No image at all? Draw a demo query from our bundled support set:**
 
 ```bash
 uv run qyield demo                        # random class
@@ -96,12 +107,23 @@ uv run qyield predict wafer.npy --ways Donut Scratch Loc --k-shot 5
 uv run qyield tui
 ```
 
-Launches a terminal UI (mouse + keyboard) with the same two paths as the plain
-CLI — Demo (pick a class from our K-set) or Upload (your own wafer map) — plus
-a live wafer-map preview rendered right in the terminal before you run
-inference. On desktop Linux/macOS, Upload's "Browse..." button opens your OS's
-native file picker (via `zenity`/`kdialog`/`osascript`, whichever is installed);
-falls back to typing a path directly if none is available (e.g. over SSH).
+Launches a terminal UI (mouse + keyboard) with two modes:
+
+- **Demo** — pick a class from our K-set and classify a sample.
+- **Label your own** — a two-phase, few-shot workflow:
+  - *Phase 1 — label:* step through a handful of wafers. Each shows its true
+    label as a hint, but you assign whatever class you like (including your own
+    custom class names). These build a personal support set.
+  - *Phase 2 — classify:* held-out query wafers are classified using *only* the
+    labels you assigned, and each result shows **Predicted vs Actual**.
+
+  This is the few-shot story made interactive — teach the model new defect
+  types from a handful of examples, no retraining.
+
+Wafer previews render as green/red ANSI art (green = good die, red = defect) —
+works in any terminal. Class names are shown with friendly labels (e.g.
+`Near-full` → "Near-full failure", `Loc` → "Localized cluster"); the terse keys
+remain what you type for `--ways`.
 
 ## How it works
 
@@ -121,10 +143,12 @@ model-load time to extract the fixed circuit wiring schedule.
 ## Repo layout
 
 ```
-src/qyield/       CLI + inference code (cli.py, model.py, constants.py)
+src/qyield/       CLI + inference code (cli.py, model.py, constants.py,
+                  tui.py, preview.py, wafer_render.py)
 checkpoints/      qresnet_ens/qresnet_ens.pt + stems/ (3 SSL backbones) — from Google Drive, gitignored
+data/samples/     10 real held-out wafer maps (PNG) to try the predict flow — tracked in git
 data/             kset_k10_s42.npz + manifest (bundled K-shot support set) — from Google Drive, gitignored
-tests/            smoke_test.py
+tests/            smoke_test.py, tui_smoke_test.py
 ```
 
 ## Honesty notes

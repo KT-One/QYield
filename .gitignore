@@ -217,5 +217,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# large model/data assets ship via Google Drive (see README), not git —
+# but keep the small demo sample images tracked so users can try immediately.
 data/
 checkpoints/

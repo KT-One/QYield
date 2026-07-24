@@ -426,7 +426,10 @@ class QYieldModel:
         with torch.no_grad():
             self.support_emb = self._embed(self.support_imgs_224)
         self.support_labels_arr = np.asarray(self.support_labels)
-        self.protos = compute_prototypes(self.support_emb, list(self.support_labels), self.classes)
+        # bundled K-set is the default active support pool; users can replace it
+        # via build_support_set*() and revert via reset_support_set().
+        self._bundled_pool = (self.support_emb, self.support_labels_arr, list(self.classes))
+        self._set_active_pool(*self._bundled_pool)
 
     # -- architecture construction -----------------------------------------------
     def _build_model(self):
@@ -468,17 +471,75 @@ class QYieldModel:
         return self.net(E)
 
     # -- few-shot episode resolution ---------------------------------------
+    def _set_active_pool(self, emb: "torch.Tensor", labels, classes) -> None:
+        """Install the support pool used for subsequent predictions and cache its
+        full (all-classes/all-shots) prototypes."""
+        self._active_emb = emb
+        self._active_labels = np.asarray(labels)
+        self._active_classes = list(classes)
+        self._active_protos = compute_prototypes(
+            self._active_emb, self._active_labels.tolist(), self._active_classes)
+        self.protos = self._active_protos          # back-compat alias
+
+    @property
+    def active_classes(self) -> list[str]:
+        """Classes in the currently-active support set (bundled K-set by default,
+        or a user-built set after build_support_set*)."""
+        return list(self._active_classes)
+
+    @property
+    def using_custom_support(self) -> bool:
+        return self._active_emb is not self._bundled_pool[0]
+
+    def build_support_set(self, images: np.ndarray, labels: list[str]) -> None:
+        """Replace the active support set with a user-provided labelled set.
+        `images`: (N,H,W) array (raw {0,1,2} or [0,1] float); `labels`: N class
+        names (any strings — custom classes are fine). Prototypes are recomputed
+        from the embedded images; subsequent predict()/predict_array() calls rank
+        against THIS set until reset_support_set() is called."""
+        images = np.asarray(images, dtype=np.float32)
+        labels = list(labels)
+        if len(images) != len(labels):
+            raise ValueError(f"images ({len(images)}) and labels ({len(labels)}) length mismatch")
+        if len(labels) == 0:
+            raise ValueError("need at least one labelled image to build a support set")
+        with torch.no_grad():
+            emb = self._embed(images)
+        classes = list(dict.fromkeys(labels))       # unique, first-seen order
+        self._set_active_pool(emb, labels, classes)
+
+    def build_support_set_from_dir(self, root: str | Path) -> None:
+        """Build a support set from a folder-per-class directory: each immediate
+        subdirectory is a class, its image files (.npy/.png/.jpg) are the shots.
+        Folder name = class label."""
+        root = Path(root)
+        if not root.is_dir():
+            raise NotADirectoryError(f"support dir not found: {root}")
+        imgs, labels = [], []
+        for cls_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+            for f in sorted(cls_dir.iterdir()):
+                if f.suffix.lower() in (".npy", ".png", ".jpg", ".jpeg"):
+                    imgs.append(load_query_image(f, self.img_size))
+                    labels.append(cls_dir.name)
+        if not imgs:
+            raise ValueError(f"no images found under {root}/<class>/ subfolders")
+        self.build_support_set(np.stack(imgs), labels)
+
+    def reset_support_set(self) -> None:
+        """Revert to the bundled K-set support set."""
+        self._set_active_pool(*self._bundled_pool)
+
     def _resolve_protos(self, n_way, k_shot, ways, seed):
-        """Return the prototype dict to rank against for this call. With no
-        n_way/k_shot/ways given, reuses the precomputed all-8-class/all-shots
-        prototypes (fast path, no re-embedding)."""
+        """Return the prototype dict to rank against for this call, drawn from the
+        ACTIVE support pool. With no n_way/k_shot/ways given, reuses the cached
+        all-classes/all-shots prototypes (fast path, no re-embedding)."""
         if n_way is None and k_shot is None and ways is None:
-            return self.protos
+            return self._active_protos
         rng = np.random.default_rng(seed)
-        classes = _select_episode_classes(self.classes, n_way, ways, rng)
-        shot_idx = _select_shots(self.support_labels_arr, classes, k_shot, rng)
-        return compute_prototypes(self.support_emb[shot_idx],
-                                  self.support_labels_arr[shot_idx].tolist(), classes)
+        classes = _select_episode_classes(self._active_classes, n_way, ways, rng)
+        shot_idx = _select_shots(self._active_labels, classes, k_shot, rng)
+        return compute_prototypes(self._active_emb[shot_idx],
+                                  self._active_labels[shot_idx].tolist(), classes)
 
     # -- public API ------------------------------------------------------------
     def predict(self, image_path, n_way: int | None = None, k_shot: int | None = None,

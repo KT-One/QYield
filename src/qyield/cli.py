@@ -16,17 +16,17 @@ import sys
 
 import numpy as np
 
-from .constants import ALL_DEFECT_CLASSES, NOVEL_CLASSES
+from .constants import ALL_DEFECT_CLASSES, NOVEL_CLASSES, display_name
 from .model import QYieldModel, load_kset
 
 
 def _print_result(result: dict) -> None:
-    print(f"\nPredicted class: {result['predicted_class']}")
-    print(f"Classes in this episode: {', '.join(result['episode_classes'])}")
+    print(f"\nPredicted class: {display_name(result['predicted_class'])}")
+    print(f"Classes in this episode: {', '.join(display_name(c) for c in result['episode_classes'])}")
     print("\nRanking (closest prototype first):")
     for cls, dist in result["ranking"]:
         marker = " <-- predicted" if cls == result["predicted_class"] else ""
-        print(f"  {cls:12s} distance={dist:.3f}{marker}")
+        print(f"  {display_name(cls):20s} distance={dist:.3f}{marker}")
 
 
 def _add_episode_args(p: argparse.ArgumentParser) -> None:
@@ -71,7 +71,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
     else:
         i = int(rng.integers(len(imgs)))
 
-    print(f"Demo query drawn from the bundled K-set — true class: {labels[i]}")
+    print(f"Demo query drawn from the bundled K-set — true class: {display_name(str(labels[i]))}")
     print("(this is a demo/smoke-test query from our own support pool, not a novel "
           "wafer — use `qyield predict <your_file.npy>` for real data)")
     result = model.predict_array(imgs[i], n_way=args.n_way, k_shot=args.k_shot,
@@ -82,8 +82,12 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 def cmd_info(args: argparse.Namespace) -> int:
     print("QYield — quantum wafer-defect classifier (QResNet-ensemble)")
-    print(f"\nAll classes ({len(ALL_DEFECT_CLASSES)}): {', '.join(ALL_DEFECT_CLASSES)}")
-    print(f"Novel classes (few-shot generalization target): {', '.join(NOVEL_CLASSES)}")
+    print(f"\nAll classes ({len(ALL_DEFECT_CLASSES)}):")
+    for k in ALL_DEFECT_CLASSES:
+        tag = "novel" if k in NOVEL_CLASSES else "base "
+        print(f"  [{tag}] {display_name(k):20s} (key: {k})")
+    print("\nNovel classes are the few-shot generalization target; the reported "
+          "accuracy is measured on those.")
     return 0
 
 

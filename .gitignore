@@ -219,5 +219,9 @@ __marimo__/
 
 # large model/data assets ship via Google Drive (see README), not git —
 # but keep the small demo sample images tracked so users can try immediately.
-data/
+/data/
 checkpoints/
+!src/dpqcnn/fswmpr/data/
+# the Google-Drive upload bundles themselves (rebuilt from checkpoints/ + data/)
+/checkpoints.zip
+/data.zip

@@ -81,3 +81,9 @@ IMAGENET_STD = [0.229, 0.224, 0.225]
 DEFAULT_CKPT_PATH = "checkpoints/qresnet_ens/qresnet_ens.pt"
 DEFAULT_STEMS_DIR = "checkpoints/stems"
 DEFAULT_KSET_PATH = "data/kset_k10_s42.npz"
+
+# QYield L4 (asi_L4) — the adaptive-state-injection novelty model. A single frozen
+# ResNet50-jet backbone + the depth-4 ASI head (163,840 params). Separate, lighter
+# bundle than the QResNet-ensemble above (one backbone instead of three SSL stems).
+DEFAULT_L4_CKPT_PATH = "checkpoints/asi_l4/asi_l4.pt"
+DEFAULT_L4_BACKBONE_PATH = "checkpoints/asi_l4/resnet50_jet_backbone.pt"

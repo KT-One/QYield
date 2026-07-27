@@ -17,12 +17,15 @@ import sys
 import numpy as np
 
 from .constants import ALL_DEFECT_CLASSES, NOVEL_CLASSES, display_name
-from .model import QYieldModel, load_kset
+from .model import load_kset
+from .model_l4 import QYieldL4Model
 
 
 def _print_result(result: dict) -> None:
     print(f"\nPredicted class: {display_name(result['predicted_class'])}")
     print(f"Classes in this episode: {', '.join(display_name(c) for c in result['episode_classes'])}")
+    if "novelty_score" in result:
+        print(f"Novelty score (higher = more like a known class): {result['novelty_score']:.3f}")
     print("\nRanking (closest prototype first):")
     for cls, dist in result["ranking"]:
         marker = " <-- predicted" if cls == result["predicted_class"] else ""
@@ -45,7 +48,7 @@ def _add_episode_args(p: argparse.ArgumentParser) -> None:
 
 
 def cmd_predict(args: argparse.Namespace) -> int:
-    model = QYieldModel(device=args.device)
+    model = QYieldL4Model(device=args.device)
     result = model.predict(args.image, n_way=args.n_way, k_shot=args.k_shot,
                            ways=args.ways, seed=args.seed)
     _print_result(result)
@@ -56,7 +59,7 @@ def cmd_demo(args: argparse.Namespace) -> int:
     from .constants import DEFAULT_KSET_PATH
     from .model import REPO_ROOT
 
-    model = QYieldModel(device=args.device)
+    model = QYieldL4Model(device=args.device)
     imgs, labels, classes = load_kset(REPO_ROOT / DEFAULT_KSET_PATH)
     labels = np.asarray(labels)
     rng = np.random.default_rng(args.seed)
@@ -81,13 +84,13 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 
 def cmd_info(args: argparse.Namespace) -> int:
-    print("QYield — quantum wafer-defect classifier (QResNet-ensemble)")
+    print("QYield — quantum wafer-defect classifier (L4: adaptive photonic head for novelty detection)")
     print(f"\nAll classes ({len(ALL_DEFECT_CLASSES)}):")
     for k in ALL_DEFECT_CLASSES:
         tag = "novel" if k in NOVEL_CLASSES else "base "
         print(f"  [{tag}] {display_name(k):20s} (key: {k})")
-    print("\nNovel classes are the few-shot generalization target; the reported "
-          "accuracy is measured on those.")
+    print("\nNovel classes are the few-shot generalization target; QYield flags these "
+          "never-seen defect types (open-set novelty), the metric the model is built for.")
     return 0
 
 

@@ -27,21 +27,22 @@ from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Label, ListItem, ListView, Static
 
 from .constants import ALL_DEFECT_CLASSES, DEFAULT_KSET_PATH, display_name
-from .model import REPO_ROOT, QYieldModel, load_kset
+from .model import REPO_ROOT, load_kset
+from .model_l4 import QYieldL4Model
 from .preview import make_preview_widget, update_preview_widget
 
 
 class ModelHolder:
-    """Lazily-constructed, app-lifetime-cached QYieldModel + K-set. QYieldModel
+    """Lazily-constructed, app-lifetime-cached QYieldL4Model + K-set. The model
     itself transparently falls back to CPU if GPU inference isn't supported."""
 
     def __init__(self) -> None:
-        self._model: QYieldModel | None = None
+        self._model: QYieldL4Model | None = None
         self._kset = None
 
-    def get_model(self) -> QYieldModel:
+    def get_model(self) -> QYieldL4Model:
         if self._model is None:
-            self._model = QYieldModel()
+            self._model = QYieldL4Model()
         return self._model
 
     def get_kset(self):
@@ -86,7 +87,14 @@ class ResultScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self.query_one("#ranking", DataTable).focus()
+        # focus the ranking table once children are mounted; best-effort (cosmetic
+        # keyboard-nav convenience — must never crash the result screen).
+        self.call_after_refresh(self._focus_ranking)
+
+    def _focus_ranking(self) -> None:
+        tables = list(self.query(DataTable))
+        if tables:
+            tables[0].focus()
 
 
 class DemoScreen(Screen):

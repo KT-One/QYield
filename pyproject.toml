@@ -1,22 +1,18 @@
 [project]
 name = "qyield"
-version = "1.0.0"
-description = "CLI for the QYield quantum wafer-defect classifier (QResNet-ensemble photonic head)"
+version = "2.0.0"
+description = "CLI for the QYield quantum wafer-defect classifier (asi_L4 adaptive photonic head for open-set novelty detection)"
 requires-python = ">=3.11,<3.13"
 dependencies = [
     # Pinned to match the exact versions the shipped checkpoint was trained/verified with.
     # CPU wheels are fine for inference; install the matching CUDA build instead for
-    # GPU inference (see README.md).
+    # GPU inference (see README.md). The shipped L4 model runs in pure PyTorch (the
+    # single-photon ASI head is classically simulable) — no merlin/perceval needed.
     "torch==2.7.1",
     "torchvision==0.22.1",
     "numpy>=1.26",
     "matplotlib>=3.8",
     "pillow>=10.0",
-    # Only needed to construct the photonic head's beamsplitter-mesh circuit at
-    # model-load time (not used per-inference-call). Do not float merlinquantum's
-    # version — model.py's MeshUnitary was written against its 0.4.0 API.
-    "merlinquantum==0.4.0",
-    "perceval-quandela==1.2.3",
     # TUI (qyield tui) — Textual for the interactive interface.
     "textual==0.86.3",
 ]

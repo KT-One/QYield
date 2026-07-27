@@ -18,7 +18,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from qyield.constants import DEFAULT_KSET_PATH, NOVEL_CLASSES
-from qyield.model import QYieldModel, REPO_ROOT, load_kset
+from qyield.model import REPO_ROOT, load_kset
+from qyield.model_l4 import QYieldL4Model
 
 
 def main() -> int:
@@ -26,7 +27,7 @@ def main() -> int:
     # Use the DEFAULT device path (auto-detect + CPU fallback) — the same path
     # real users hit via the CLI — so this test catches device/fallback bugs
     # instead of masking them with an explicit device="cpu".
-    model = QYieldModel()
+    model = QYieldL4Model()
     print(f"loaded OK on device={model.device}; classes={model.classes}")
 
     imgs, labels, classes = load_kset(REPO_ROOT / DEFAULT_KSET_PATH)

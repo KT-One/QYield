@@ -1,5 +1,16 @@
-"""model.py — self-contained inference module for the QYield quantum wafer-defect
-classifier (QResNet-ensemble: 3x SSL-pretrained ResNet50 + a photonic head).
+"""model.py — shared inference helpers + the legacy QResNet-ensemble classifier.
+
+The **shipped** QYield product is the `asi_L4` novelty model in `model_l4.py`; this
+module now serves two roles:
+  1. Shared, dependency-light inference helpers reused by `model_l4.py`
+     (`load_query_image`, `load_kset`, `compute_prototypes`, `_predict`,
+     `_build_resnet50_stem`, the episode/shot selectors, `REPO_ROOT`).
+  2. The original **QResNet-ensemble** classifier (`QYieldModel`: 3x SSL-pretrained
+     ResNet50 + a photonic head) — the closed-set accuracy model. It is **no longer
+     shipped in the Drive bundle** (its checkpoints/SSL stems are not included) and is
+     kept here for the research record; constructing its `quantum` head also needs
+     `merlin`/`perceval`, which are no longer MVP dependencies. See `research/` for the
+     full ensemble experiments.
 
 Zero dependency on the DP-QCNN research package or its file layout — this module
 only needs the checkpoint + SSL stems + K-set bundled in this repo's `checkpoints/`

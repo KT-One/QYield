@@ -1,142 +1,46 @@
-# QYield — Summary
+# QYield summary
 
-**QYield** — an adaptive photonic-quantum feature head for wafer-defect inspection.
-(Technical id: `asi_L4`, the depth-4 Adaptive State Injection model — the one model we carry forward.)
+QYield is a research prototype for few-shot wafer-defect novelty detection on WM-811K. It uses a frozen ResNet50 encoder, the trainable `asi_L4` Adaptive State Injection head, and prototype classification to rank known defect classes and identify unfamiliar patterns.
 
----
+The product returns a class ranking and `novelty_score`. The score is the negative distance to the nearest support-set prototype. Higher scores indicate a closer match to a known class, while lower scores mean the query is likely a new defect type.
 
-## TL;DR
+## Architecture comparison
 
-- **Problem:** fabs get blindsided by *new* defect types their AI was never trained on.
-- **Solution:** QYield reshapes a standard image model's features so a never-seen defect stands out as
-  "not like anything known."
-- **Result (11 seeds, same backbone):** QYield reaches **71.5 novelty AUROC** — **+10.4 over the CNN
-  baseline** and **+5.3 over SN-ProtoNet**, the strongest principled classical control — CIs separated.
-- **Why it holds up:** the win is the head's *structure* (norm-preserving **+** adaptive), not the
-  backbone, the parameter count, or "being quantum" — each isolated by a control below.
+![Figure 1a. ProtoNet-ResNet50 baseline architecture](assets/baseline-architecture.svg)
 
----
+**Figure 1a. No-head ProtoNet-ResNet50 baseline.**
 
-## 1. Problem & solution
+![Figure 1b. SN-ProtoNet (CNN SOTA) architecture](assets/cnn-sota-architecture.svg)
 
-**Problem.** Fabs lose yield to *rare, novel* wafer-defect patterns. A classifier trained on known
-defect types silently misclassifies a genuinely new failure mode as "known," often after wafers are
-already scrapped.
+**Figure 1b. SN-ProtoNet (CNN SOTA) architecture.**
 
-**Solution.** QYield adds a small trainable photonic-quantum layer on top of a standard frozen image
-backbone. It reshapes the features so a defect *unlike anything seen in training* is pushed away from
-the known clusters and flagged as novel — improving this open-set detection by ~10 points over the
-no-head baseline and ~5 over the best classical alternative, with no change to deployment.
+![Figure 1c. QYield asi_L4 architecture](assets/qyield-system-overview.svg)
 
----
+**Figure 1c. QYield architecture.**
 
-## 2. What QYield is
 
-Frozen backbone → features → split across N tiny photonic circuits (QPUs). Each QPU does a learned
-rotation, then the new step — **ASI**: it *measures* part of the state and lets that outcome *choose*
-which learned circuit processes the rest.
+**Figure 1. Matched architecture comparison.** Panels 1a through 1c use the same frozen ResNet50 encoder and prototype classifier. The pale-blue wafer grid represents the input field, orange cells mark defective dies, navy cards show processing stages, and solid pale-blue arrows show feature flow. Orange dots and cards identify four-value blocks and highlighted block-level stages. The QYield panel uses the depth-4 ASI head, the CNN SOTA panel uses a spectral-normalised classical map, and the baseline has no trainable feature head.
 
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'fontFamily':'"Segoe UI",system-ui,sans-serif','fontSize':'14px','primaryColor':'#dbe7ff','primaryTextColor':'#1f2937','primaryBorderColor':'#94a8d0','lineColor':'#8b9cc0','textColor':'#1f2937','edgeLabelBackground':'#eef2ff'}}}%%
-flowchart LR
-  E["Frozen backbone<br/>image → features"] --> R["split across N QPUs"]
-  R --> Q["N × photonic QPU<br/>(rotate → ★ASI)"]
-  Q --> H["few-shot classifier<br/>known defects + novelty score"]
-  classDef box fill:#dbe7ff,stroke:#94a8d0,color:#1f2937;
-  classDef acc fill:#ffe1bf,stroke:#e6b781,color:#7c3a12;
-  class E,R,H box;
-  class Q acc;
-```
+The `asi_L4` head processes the 2,048-dimensional ResNet50 embedding in 512 independent four-value blocks and produces a 1,024-dimensional output embedding. It uses a single-photon, exact-expectation PyTorch formulation. The detailed design, configuration, and physics scope are in [`asi-l4-architecture.md`](asi-l4-architecture.md) and [`qyield-technical.md`](qyield-technical.md).
 
-**Inside one QPU** (ASI — the only non-classical part):
+## Matched result
 
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'fontFamily':'"Segoe UI",system-ui,sans-serif','fontSize':'13px','primaryColor':'#dbe7ff','primaryTextColor':'#1f2937','primaryBorderColor':'#94a8d0','lineColor':'#8b9cc0','textColor':'#1f2937','edgeLabelBackground':'#eef2ff'}}}%%
-flowchart LR
-  A["features → 1 photon<br/>over m modes"] --> B["learned rotation U(θ)"]
-  B --> C["★ MEASURE part of it<br/>→ outcome picks a circuit"]
-  C --> D["apply chosen circuit V⁽ᵒ⁾<br/>(+ inject fresh photon)"]
-  D --> O["read output → feature"]
-  classDef box fill:#dbe7ff,stroke:#94a8d0,color:#1f2937;
-  classDef acc fill:#ffe1bf,stroke:#e6b781,color:#7c3a12;
-  class A,B,D,O box;
-  class C acc;
-```
+The experiment evaluates 1,100 3-way, 5-shot WM-811K episodes across 11 seeds. Each episode uses 15 support selections and 80 scored queries, giving 16,500 support selections and 88,000 query observations. All compared paths use the same backbone, episode sampler, classifier, and novelty scorer. Only the feature head changes.
 
-**The one idea:** *measure-then-choose is a data-dependent branch.* A plain rotation applies the same
-transform to every input (a classical linear layer). Letting the measurement outcome select the circuit
-means different inputs take different paths — capacity a fixed layer cannot express. QYield stacks 4
-such blocks (depth 4); all transforms are norm-preserving (orthogonal + renormalization), so the head
-adds routing **without** distorting the feature geometry (see §5).
+| Model | Novelty AUROC |
+|---|---:|
+| ProtoNet-ResNet50, no feature head | 61.12 +/- 0.97 |
+| SN-ProtoNet, strongest tested classical control | 66.19 +/- 0.84 |
+| QYield, `asi_L4` | **71.47 +/- 0.95** |
 
----
+Closed-set accuracy remains near 76 to 78 percent across the main controls. This result supports novelty detection on the tested benchmark, not an accuracy SOTA claim. Full methods and results are in [`results-novelty.md`](results-novelty.md).
 
-## 3. How we evaluate — few-shot episodes
+## Scope
 
-A fab can label only a handful of examples of a rare defect, so we test that way.
+- `asi_L4` is the one carried-forward R&D model and the shipped checkpoint represents one trained seed.
+- The reported result is the 11-seed mean for the tested WM-811K split and episode protocol.
+- The head is classically simulable. Hardware, speed, energy, and multi-photon advantages are outside the demonstrated scope.
 
-- **N-way K-shot:** each episode gives the model **N** classes with **K** labelled examples each, then
-  asks it to sort fresh queries into those N. **`3w5s`** = 3 classes × 5 examples; **`5w5s`** = 5 × 5
-  (harder). More classes = harder.
-- **Base vs novel:** the model trains on **base** (common) classes and is evaluated on **novel** classes
-  it *never saw* — the realistic "new failure mode" case.
-- Reported over 100 episodes × 11 seeds with 95% CIs.
+## Research basis
 
----
-
-## 4. Metric — novelty AUROC (not accuracy)
-
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'fontFamily':'"Segoe UI",system-ui,sans-serif','fontSize':'13px','primaryColor':'#dbe7ff','primaryTextColor':'#1f2937','primaryBorderColor':'#94a8d0','lineColor':'#8b9cc0','textColor':'#1f2937','edgeLabelBackground':'#eef2ff'}}}%%
-flowchart LR
-  Q["incoming wafer"] --> K{"a KNOWN<br/>defect type?"}
-  K -->|"yes"| CS["closed-set ACCURACY<br/>pick the right known class<br/>(tied ~78% — no headroom)"]
-  K -->|"NO, never seen"| OS["open-set AUROC<br/>flag it as novel<br/>★ where QYield wins"]
-  classDef box fill:#dbe7ff,stroke:#94a8d0,color:#1f2937;
-  classDef acc fill:#ffe1bf,stroke:#e6b781,color:#7c3a12;
-  classDef dec fill:#d3efdd,stroke:#8fc7a3,color:#1f513a;
-  class Q,CS box; class OS acc; class K dec;
-```
-
-- **Novelty AUROC** = how well a "how novel is this?" score separates never-seen defects from known
-  ones. **1.0 = perfect, 0.5 = coin-flip.** This is the fab-relevant number.
-- **Why not accuracy:** closed-set accuracy is **saturated** — every head sits at ~76–78% because the
-  known classes are easy to separate, so accuracy can't distinguish models. All signal is in novelty.
-  Accuracy is reported only to confirm it never regresses.
-
----
-
-## 5. Results — three-way comparison (11 seeds, same backbone)
-
-Every head is **frozen ResNet50 → [head] → prototype classifier**; only the head changes, so any gap
-is the head alone. The three headline lines (full 15-head landscape in `qyield-technical.md` §8):
-
-| model | role | novelty AUROC ↑ |
-|---|---|---|
-| **ProtoNet-ResNet50** | CNN baseline (no head — the floor) | 61.1 ± 1.0 |
-| **SN-ProtoNet** (+ spectral head) | strong classical control | 66.2 ± 0.8 |
-| **QYield** (+ adaptive photonic head) | quantum | **71.5 ± 0.9** |
-
-- **QYield: +5.3 over SN-ProtoNet, +10.4 over the CNN baseline** — CIs separated; accuracy tied ~78%
-  across all three (no regression).
-- **The win is the head's structure — not "being quantum" or capacity** — isolated by controls
-  (`qyield-technical.md` §8): a *non-adaptive* photonic head only ties the classical control (~66), while
-  free and even QYield-param-matched MLPs fall *below* the floor (56–59).
-
-**Mechanism (grounded, not circular):** a freely-trained head reshapes to fit the *seen* classes and
-collapses the directions that distinguish *unseen* ones ("feature collapse"). Bounding the head's
-operator norm makes it distance-preserving (bi-Lipschitz), which cannot collapse distances — the
-established OOD principle behind SN-ProtoNet (spectral normalization / SNGP, Liu et al. 2020; Miyato et
-al. 2018). QYield keeps that guarantee **and** adds measurement-conditioned routing, so it exceeds the
-norm-preserving classical ceiling.
-
----
-
-## 6. Scope & next
-
-- **Honest scope:** a fair, same-backbone **novelty** win — not an accuracy-SOTA claim. At this scale
-  QYield is classically simulable, so the advantage is **quantum-*inspired*** (a better feature map),
-  not yet a proven quantum *hardware* moat.
-- **Next:** (1) push depth + multi-photon toward the classically-hard-but-trainable regime where a
-  hardware moat could exist; (2) test on correlation-structured inspection data (this wafer data is
-  classically separable, which caps the achievable edge).
+QYield adapts the photonic ASI mechanism from Monbroussou et al., ["Photonic Quantum Convolutional Neural Networks with Adaptive State Injection"](../papers/base/2504.20989v1.pdf), and measurement-conditioned routing concepts related to Hwang et al., ["Distributed quantum machine learning via classical communication"](../papers/base/2408.16327v1.pdf). The product computes the resulting feature head in PyTorch without physical photon injection, detector sampling, or QPU communication.

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">Prototype-distance novelty scoring schematic</title>
+  <desc id="desc">A label-free square embedding-space schematic with three coloured clusters, matching non-circular dashed boundaries, class prototypes, a black query point, and a dashed line to its nearest prototype.</desc>
+  <rect width="640" height="640" fill="#ffffff"/>
+  <rect x="24" y="24" width="592" height="592" rx="30" fill="#f8faff" stroke="#d8e1f0" stroke-width="3"/>
+
+  <path d="M203 96 C147 115 128 184 161 234 C195 285 288 288 339 247 C387 208 380 133 331 99 C291 72 242 78 203 96Z" fill="#fcece4" fill-opacity=".82" stroke="#e8703a" stroke-width="4" stroke-dasharray="13 10"/>
+  <path d="M102 393 C56 446 88 536 153 560 C220 586 298 541 299 475 C300 421 255 368 195 367 C158 366 126 374 102 393Z" fill="#e7eefb" fill-opacity=".78" stroke="#48588a" stroke-width="4" stroke-dasharray="13 10"/>
+  <path d="M410 365 C353 412 363 505 420 550 C475 594 565 555 576 489 C586 432 538 371 481 357 C452 350 430 350 410 365Z" fill="#e9f6ee" fill-opacity=".82" stroke="#3f8c68" stroke-width="4" stroke-dasharray="13 10"/>
+
+  <g fill="#e8703a"><circle cx="195" cy="173" r="8"/><circle cx="224" cy="130" r="8"/><circle cx="244" cy="220" r="8"/><circle cx="270" cy="113" r="8"/><circle cx="289" cy="235" r="8"/><circle cx="314" cy="151" r="8"/><circle cx="330" cy="204" r="8"/><circle cx="181" cy="224" r="8"/></g>
+  <g fill="#48588a"><circle cx="121" cy="459" r="8"/><circle cx="151" cy="416" r="8"/><circle cx="168" cy="521" r="8"/><circle cx="194" cy="446" r="8"/><circle cx="221" cy="489" r="8"/><circle cx="244" cy="413" r="8"/><circle cx="262" cy="514" r="8"/><circle cx="111" cy="508" r="8"/></g>
+  <g fill="#3f8c68"><circle cx="411" cy="455" r="8"/><circle cx="436" cy="403" r="8"/><circle cx="452" cy="523" r="8"/><circle cx="478" cy="438" r="8"/><circle cx="505" cy="486" r="8"/><circle cx="528" cy="415" r="8"/><circle cx="547" cy="511" r="8"/><circle cx="398" cy="503" r="8"/></g>
+
+  <g stroke-linecap="round" stroke-width="5"><g stroke="#c2501f"><path d="M258 167l22 22M280 167l-22 22"/></g><g stroke="#334b82"><path d="M180 462l22 22M202 462l-22 22"/></g><g stroke="#277653"><path d="M474 462l22 22M496 462l-22 22"/></g></g>
+
+  <path d="M531 160 L269 178" stroke="#13233f" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
+  <circle cx="531" cy="160" r="12" fill="#13233f" stroke="#ffffff" stroke-width="5"/>
+</svg>

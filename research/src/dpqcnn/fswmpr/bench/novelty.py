@@ -2,7 +2,7 @@
 
 Consolidates the scattered scratch scripts (former temp/{novelty_baselines, tightest_baseline,
 baseline_conv4, baselines_novelty}.py) into one reusable, deduplicated module. Everything is scored
-with the SAME prototype-distance rule so photonic heads (asi/orthogonal/quantum, via qreg_bench) and
+with the SAME prototype-distance rule so photonic heads (asi/orthogonal/multi_photon, via qreg_bench) and
 classical baselines (Baseline/ProtoNet-Conv4) are compared fairly.
 
 Public API

@@ -357,7 +357,7 @@ def evaluate(net, device, E, novel_by, n_way, k, q, n_episodes, eval_seed, exclu
 def head_configs():
     cfgs = {
         "baseline":           {"kind": "baseline"},     # identity → prototype = frozen-ResNet50 floor
-        "quantum":            {"kind": "quantum"},
+        "multi_photon":      {"kind": "quantum"},
         "classical_free":     {"kind": "classical"},
         "orthogonal":         {"kind": "orthogonal"},
         "quantum_n1":         {"kind": "quantum", "n_photons": 1},

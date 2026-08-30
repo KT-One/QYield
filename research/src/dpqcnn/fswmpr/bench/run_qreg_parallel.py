@@ -45,8 +45,8 @@ def main():
 
     names = args.heads or list(head_configs().keys())
     # spread the 3 slow quantum heads across different groups for balanced load
-    slow = [n for n in names if n.startswith("quantum")]
-    fast = [n for n in names if not n.startswith("quantum")]
+    slow = [n for n in names if n.startswith("quantum") or n.startswith("multi_photon")]
+    fast = [n for n in names if not (n.startswith("quantum") or n.startswith("multi_photon"))]
     groups = [[] for _ in range(args.n_groups)]
     for i, n in enumerate(slow + fast):
         groups[i % args.n_groups].append(n)

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="540" viewBox="0 0 640 540" role="img" aria-labelledby="title desc">
+  <title id="title">Quantum Feature Transform, one block</title>
+  <desc id="desc">One four-dimensional input feature enters a repeated four-layer ASI stack. Each layer applies rotation U, a Born gate, four expert rotations, and a weighted sum. The final four-dimensional state feeds a square readout producing two dimensions.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0 0 L7 4 L0 8 z" fill="#5B6472"/>
+    </marker>
+    <style>
+      .lbl{font:700 15px Arial,sans-serif;fill:#1B2A4A}
+      .tiny{font:700 11px Arial,sans-serif;fill:#1B2A4A}
+      .math{font:400 12px Georgia,serif;fill:#5B6472}
+      .n{font:700 22px Georgia,serif;fill:#B5502E}
+      .arrow{stroke:#5B6472;stroke-width:1.6;fill:none;marker-end:url(#arrow)}
+      .box{fill:#FFFFFF;stroke:#1B2A4A;stroke-width:1.4}
+      .accent{fill:#FBE7DF;stroke:#B5502E;stroke-width:1.4}
+      .expert{fill:#FFFFFF;stroke:#1B2A4A;stroke-width:1.1}
+    </style>
+  </defs>
+  <rect width="640" height="540" fill="#FFFFFF"/>
+
+  <!-- compact final output stage -->
+  <rect x="190" y="18" width="260" height="38" rx="6" class="accent"/>
+  <text x="320" y="43" text-anchor="middle" style="font:700 14px Arial,sans-serif;fill:#B5502E">Square Readout (2d)</text>
+  <path class="arrow" d="M320 90 V57"/>
+
+  <!-- repeated layer stack -->
+  <rect x="125" y="90" width="390" height="310" rx="10" fill="#F4F6FA" stroke="#1B2A4A" stroke-width="1.5" stroke-dasharray="7 5"/>
+
+  <!-- state output -->
+  <rect x="220" y="108" width="200" height="32" rx="6" class="box"/>
+  <text x="320" y="129" text-anchor="middle" class="lbl">State v (4d)</text>
+  <path class="arrow" d="M320 160 V141"/>
+
+  <!-- weighted sum -->
+  <rect x="205" y="160" width="230" height="34" rx="6" class="box"/>
+  <text x="320" y="182" text-anchor="middle" class="lbl">Weighted Sum</text>
+  <path class="arrow" d="M320 220 V195"/>
+
+  <!-- expert rotations -->
+  <rect x="160" y="220" width="320" height="66" rx="6" fill="#FFFFFF" stroke="#1B2A4A" stroke-width="1.4"/>
+  <text x="320" y="237" text-anchor="middle" class="tiny">EXPERT ROTATIONS</text>
+  <rect x="176" y="246" width="62" height="30" rx="4" class="expert"/><text x="207" y="266" text-anchor="middle" class="tiny">V0</text>
+  <rect x="246" y="246" width="62" height="30" rx="4" class="expert"/><text x="277" y="266" text-anchor="middle" class="tiny">V1</text>
+  <rect x="316" y="246" width="62" height="30" rx="4" class="expert"/><text x="347" y="266" text-anchor="middle" class="tiny">V2</text>
+  <rect x="386" y="246" width="62" height="30" rx="4" class="expert"/><text x="417" y="266" text-anchor="middle" class="tiny">V3</text>
+  <path class="arrow" d="M320 300 V287"/>
+
+  <!-- Born gate -->
+  <rect x="220" y="300" width="200" height="34" rx="6" class="box"/>
+  <text x="320" y="320" text-anchor="middle" class="lbl">Born Gate</text>
+  <path class="arrow" d="M320 348 V335"/>
+
+  <!-- rotation -->
+  <rect x="220" y="348" width="200" height="34" rx="6" class="box"/>
+  <text x="320" y="370" text-anchor="middle" class="lbl">Rotation U</text>
+
+  <!-- input outside repeated stack -->
+  <path class="arrow" d="M320 420 V383"/>
+  <rect x="190" y="420" width="260" height="36" rx="6" class="box"/>
+  <text x="320" y="444" text-anchor="middle" class="lbl">Input Feature (4d)</text>
+
+  <!-- stack marker -->
+  <path d="M525 90 H545 V400 H525" fill="none" stroke="#B5502E" stroke-width="1.6"/>
+  <text x="565" y="255" class="n">× 4</text>
+</svg>

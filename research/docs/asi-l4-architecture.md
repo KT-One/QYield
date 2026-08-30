@@ -148,14 +148,20 @@ Product runtime uses PyTorch on CPU or GPU with zero photonic sources, detectors
 |---|---|
 | Trainable component | `asi_L4` head |
 | Frozen component | ImageNet ResNet50 |
+| Training classes | Center, Edge-Ring, Edge-Loc |
+| Base training split | Stratified 70% of each training class |
 | Optimiser | Adam |
 | Learning rate | `1e-3` |
 | Updates | 1,000 |
-| Meta-batch size | 16 |
-| Labelled support examples per class | 5 |
-| Training queries per class | 15 |
+| Meta-batch size | 16 episodes |
+| Training episodes per seed | 16,000 |
+| Support per training episode | 15 selections, 3 classes x 5 shots |
+| Training queries per episode | 45 selections, 3 classes x 15 queries |
+| Support selections per seed | 240,000 |
+| Training-query selections per seed | 720,000 |
 | Objective | Cross-entropy over negative query-to-prototype distances |
-| Training classes | Center, Edge-Ring, Edge-Loc |
+
+The episodic sampler draws support and query examples from `base_train`. Each training episode uses all three base classes. The 16,000 episodes per seed produce 960,000 sampled image selections. These totals describe episodic sampling activity. The underlying `base_train` pool supplies the source wafer images throughout training.
 
 The matched evaluation protocol and control results are documented in [`qyield-technical.md`](qyield-technical.md) and [`results-novelty.md`](results-novelty.md).
 

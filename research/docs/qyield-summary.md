@@ -25,7 +25,7 @@ The `asi_L4` head processes the 2,048-dimensional ResNet50 embedding in 512 inde
 
 ## Matched result
 
-The experiment evaluates 1,100 3-way, 5-shot WM-811K episodes across 11 seeds. Each episode uses 15 support selections and 80 scored queries, giving 16,500 support selections and 88,000 query observations. All compared paths use the same backbone, episode sampler, classifier, and novelty scorer. Only the feature head changes.
+The `asi_L4` head trains on 16,000 base-class episodes per seed, using 240,000 support selections and 720,000 training-query selections. The experiment evaluates 1,100 3-way, 5-shot WM-811K episodes across 11 seeds. Each evaluation episode uses 15 support selections and 80 scored queries, giving 16,500 support selections and 88,000 query observations. All compared paths use the same backbone, episode sampler, classifier, and novelty scorer. Only the feature head changes.
 
 | Model | Novelty AUROC |
 |---|---:|
